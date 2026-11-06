@@ -1,0 +1,626 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>HOLLO COFFEE — Stasiun Operasional</title>
+  <script>
+    // =================================================================
+    // ISI 2 DATA ANDA DI BAWAH INI (JANGAN HAPUS TANDA KUTIPNYA '')
+    // =================================================================
+    const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzn_py6evYZU3leAG8ztpRWuN55wdRmDTTUZwk6mRR2yLIH_Q4BTJdGU0XWPyW0vLjd/exec';
+    const SHEETS_SECRET = '643bd256995143ddbd777fde0fda348e620e8f7818e4465a98a0eddf6c94d3b9';
+  </script>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+    body { font-family: 'Plus Jakarta Sans', sans-serif; -webkit-tap-highlight-color: transparent; }
+  </style>
+</head>
+<body class="bg-stone-100 text-stone-900 min-h-screen pb-20 select-none md:select-auto">
+
+  <!-- NOTIFIKASI TOAST -->
+  <div id="toast" class="fixed top-4 right-4 z-50 transform transition-all duration-300 translate-y-[-150%] opacity-0 bg-stone-900 text-white px-4 py-3 rounded-2xl shadow-2xl flex items-center gap-3 border border-stone-700 text-xs font-semibold">
+    <i id="toast-icon" data-lucide="info" class="w-4 h-4 text-amber-400"></i>
+    <span id="toast-msg">-</span>
+  </div>
+
+  <!-- POP-UP LOGIN -->
+  <div id="login-screen" class="fixed inset-0 z-40 bg-stone-950/80 backdrop-blur-md flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl p-7 max-w-sm w-full shadow-2xl border border-stone-200">
+      <div class="text-center mb-6">
+        <div class="w-14 h-14 bg-amber-800 text-amber-100 rounded-2xl flex items-center justify-center mx-auto mb-3 text-xl font-black shadow-lg">HC</div>
+        <h1 class="text-xl font-extrabold tracking-tight text-stone-900">HOLLO COFFEE</h1>
+        <p class="text-xs text-stone-500 font-medium">Stasiun Operasional & Kasir</p>
+      </div>
+
+      <div class="space-y-4">
+        <div>
+          <label class="block text-[11px] font-bold text-stone-600 uppercase tracking-wider mb-1">Username Staf</label>
+          <input id="login-user" type="text" placeholder="mis. boy / pace / el" class="w-full bg-stone-50 border border-stone-200 rounded-xl px-4 py-3 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-amber-700" />
+        </div>
+        <div>
+          <label class="block text-[11px] font-bold text-stone-600 uppercase tracking-wider mb-1">PIN Rahasia (4–8 Digit)</label>
+          <input id="login-pin" type="password" maxlength="8" placeholder="••••••" class="w-full bg-stone-50 border border-stone-200 rounded-xl px-4 py-3 text-center tracking-widest text-base font-bold focus:outline-none focus:ring-2 focus:ring-amber-700" />
+        </div>
+        <button onclick="handleLogin()" id="btn-login" class="w-full bg-amber-800 hover:bg-amber-900 text-white font-bold py-3.5 rounded-xl text-xs shadow-lg transition active:scale-95 flex items-center justify-center gap-2">
+          <span>Masuk Stasiun</span>
+          <i data-lucide="arrow-right" class="w-4 h-4"></i>
+        </button>
+      </div>
+      <p class="text-[11px] text-center text-stone-400 mt-5 font-medium leading-relaxed">
+        Super Admin: Username <code class="text-amber-800 font-bold">boy</code>.<br>PIN dapat dilihat/diubah di tab <code class="text-stone-700 font-bold">PIN_RAJA</code> Sheet.
+      </p>
+    </div>
+  </div>
+
+  <!-- HEADER NAVIGASI -->
+  <header class="bg-stone-900 text-stone-100 sticky top-0 z-30 shadow-md">
+    <div class="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <div class="w-8 h-8 bg-amber-700 rounded-xl flex items-center justify-center font-bold text-xs text-white">HC</div>
+        <div>
+          <div class="flex items-center gap-2">
+            <span class="text-xs font-black tracking-wider text-amber-400 uppercase">HOLLO COFFEE</span>
+            <span id="badge-role" class="text-[9px] font-bold bg-amber-500/20 text-amber-300 px-2 py-0.5 rounded-full border border-amber-500/30">STAFF</span>
+          </div>
+          <div class="text-[10px] text-stone-400 flex items-center gap-1.5 mt-0.5">
+            <span id="live-clock">00:00:00</span>
+            <span>•</span>
+            <span id="hdr-user-info" class="text-stone-300 font-medium">-</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="flex items-center gap-2">
+        <button onclick="fetchSync(true)" title="Sinkronkan Data Sheet" class="p-2 rounded-xl bg-stone-800 hover:bg-stone-700 text-stone-300 active:rotate-180 transition duration-300">
+          <i data-lucide="refresh-cw" class="w-4 h-4"></i>
+        </button>
+        <button onclick="handleLogout()" title="Keluar" class="p-2 rounded-xl bg-stone-800 hover:bg-rose-900/50 text-stone-400 hover:text-rose-300 transition">
+          <i data-lucide="log-out" class="w-4 h-4"></i>
+        </button>
+      </div>
+    </div>
+
+    <nav class="max-w-6xl mx-auto px-4 flex gap-1 overflow-x-auto no-scrollbar border-t border-stone-800 text-xs font-bold">
+      <button onclick="switchTab('dashboard')" class="tab-btn py-3 px-3.5 border-b-2 border-amber-500 text-amber-400 flex items-center gap-1.5 whitespace-nowrap" data-tab="dashboard">
+        <i data-lucide="layout-dashboard" class="w-4 h-4"></i> Ringkasan
+      </button>
+      <button onclick="switchTab('checklist')" class="tab-btn py-3 px-3.5 border-b-2 border-transparent text-stone-400 hover:text-stone-200 flex items-center gap-1.5 whitespace-nowrap" data-tab="checklist">
+        <i data-lucide="check-square" class="w-4 h-4"></i> Checklist
+      </button>
+      <button onclick="switchTab('stok')" class="tab-btn py-3 px-3.5 border-b-2 border-transparent text-stone-400 hover:text-stone-200 flex items-center gap-1.5 whitespace-nowrap" data-tab="stok">
+        <i data-lucide="boxes" class="w-4 h-4"></i> Stok Bahan
+      </button>
+      <button onclick="switchTab('serah')" class="tab-btn py-3 px-3.5 border-b-2 border-transparent text-stone-400 hover:text-stone-200 flex items-center gap-1.5 whitespace-nowrap" data-tab="serah">
+        <i data-lucide="banknote" class="w-4 h-4"></i> Serah Kasir
+      </button>
+      <button id="tab-btn-admin" onclick="switchTab('admin')" class="hidden tab-btn py-3 px-3.5 border-b-2 border-transparent text-amber-300 hover:text-amber-100 flex items-center gap-1.5 whitespace-nowrap" data-tab="admin">
+        <i data-lucide="shield-check" class="w-4 h-4 text-amber-400"></i> Kelola PIN & User
+      </button>
+    </nav>
+  </header>
+
+  <!-- KONTEN APLIKASI -->
+  <main class="max-w-6xl mx-auto px-4 py-5">
+
+    <!-- 1. DASHBOARD -->
+    <section id="pane-dashboard" class="space-y-4">
+      <div class="grid grid-cols-2 sm:grid-cols-3 gap-3">
+        <div class="bg-white p-4 rounded-2xl border border-stone-200 shadow-sm">
+          <div class="text-[10px] font-bold text-stone-400 uppercase tracking-wider">Progress Checklist</div>
+          <div class="text-2xl font-black text-stone-900 mt-1" id="kpi-check-pct">0%</div>
+          <div class="text-[11px] text-stone-500 mt-0.5" id="kpi-check-sub">0 selesai</div>
+        </div>
+        <div class="bg-white p-4 rounded-2xl border border-stone-200 shadow-sm">
+          <div class="text-[10px] font-bold text-rose-500 uppercase tracking-wider">Perlu Restock</div>
+          <div class="text-2xl font-black text-rose-600 mt-1" id="kpi-restock-count">0</div>
+          <div class="text-[11px] text-stone-500 mt-0.5">Bahan menipis</div>
+        </div>
+        <div class="bg-white p-4 rounded-2xl border border-stone-200 shadow-sm col-span-2 sm:col-span-1">
+          <div class="text-[10px] font-bold text-amber-700 uppercase tracking-wider">Divisi Login</div>
+          <div class="text-lg font-black text-stone-900 mt-1" id="kpi-my-div">-</div>
+          <div class="text-[11px] text-stone-500 mt-0.5" id="kpi-my-scope">Akses Khusus</div>
+        </div>
+      </div>
+
+      <div class="bg-white rounded-2xl border border-stone-200 p-4 shadow-sm">
+        <h3 class="text-xs font-bold text-stone-800 flex items-center gap-2 mb-3">
+          <i data-lucide="alert-circle" class="w-4 h-4 text-rose-500"></i>
+          Peringatan Bahan Menipis (Stok Opname)
+        </h3>
+        <div id="dashboard-restock-list" class="divide-y divide-stone-100 text-xs">
+          <div class="py-3 text-center text-stone-400">Semua bahan aman atau belum dihitung.</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 2. CHECKLIST -->
+    <section id="pane-checklist" class="hidden space-y-3">
+      <div class="bg-white p-3.5 rounded-2xl border border-stone-200 flex justify-between items-center gap-2">
+        <span class="text-xs font-bold text-stone-800">Tugas Stasiun Hari Ini</span>
+        <select id="filter-check-div" onchange="renderChecklist()" class="bg-stone-50 border border-stone-200 rounded-xl px-2.5 py-1.5 text-xs font-bold text-stone-700">
+          <option value="SEMUA">Semua Divisi</option>
+          <option value="BARISTA">Barista</option>
+          <option value="KITCHEN">Kitchen</option>
+          <option value="SERVER">Server</option>
+          <option value="KASIR">Kasir</option>
+        </select>
+      </div>
+      <div id="checklist-list" class="space-y-2"></div>
+    </section>
+
+    <!-- 3. STOK OPNAME -->
+    <section id="pane-stok" class="hidden space-y-3">
+      <div class="bg-white p-3.5 rounded-2xl border border-stone-200 flex justify-between items-center gap-2">
+        <input type="text" id="search-stok" oninput="renderStok()" placeholder="Cari nama barang..." class="bg-stone-50 border border-stone-200 rounded-xl px-3 py-1.5 text-xs font-medium w-full max-w-xs" />
+        <select id="filter-stok-div" onchange="renderStok()" class="bg-stone-50 border border-stone-200 rounded-xl px-2.5 py-1.5 text-xs font-bold text-stone-700">
+          <option value="SEMUA">Semua Divisi</option>
+          <option value="BARISTA">Barista</option>
+          <option value="KITCHEN">Kitchen</option>
+          <option value="SERVER">Server</option>
+        </select>
+      </div>
+      <div class="bg-white rounded-2xl border border-stone-200 overflow-hidden shadow-sm">
+        <table class="w-full text-left text-xs">
+          <thead class="bg-stone-50 border-b border-stone-200 text-stone-400 uppercase font-bold text-[10px]">
+            <tr>
+              <th class="py-3 px-3">Nama Barang</th>
+              <th class="py-3 px-2 text-center">Gudang</th>
+              <th class="py-3 px-2 text-center">Pagi</th>
+              <th class="py-3 px-2 text-center">Sore</th>
+              <th class="py-3 px-2 text-center">Status</th>
+              <th class="py-3 px-3 text-right">Aksi</th>
+            </tr>
+          </thead>
+          <tbody id="stok-table-body" class="divide-y divide-stone-100"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- 4. SERAH KASIR -->
+    <section id="pane-serah" class="hidden space-y-3">
+      <div class="bg-white p-5 rounded-2xl border border-stone-200 shadow-sm max-w-lg mx-auto">
+        <h3 class="text-sm font-bold text-stone-900 border-b pb-2 mb-3">Serah Terima & Hitung Kasir</h3>
+        <form onsubmit="handleSaveSerah(event)" class="space-y-3 text-xs">
+          <div>
+            <label class="block font-bold text-stone-600 mb-1">Tipe</label>
+            <select id="sr-tipe" class="w-full bg-stone-50 border border-stone-200 rounded-xl p-2.5 font-medium">
+              <option value="Serah Terima 16:30">Serah Terima 16:30 (Shift 1 → 2)</option>
+              <option value="Tutup Kasir 00:00">Tutup Kasir 00:00 (Closing)</option>
+            </select>
+          </div>
+          <div class="grid grid-cols-2 gap-2">
+            <div>
+              <label class="block font-bold text-stone-600 mb-1">Modal Awal (Rp)</label>
+              <input type="number" id="sr-kas-awal" oninput="calcCash()" placeholder="0" class="w-full bg-stone-50 border rounded-xl p-2.5 font-bold" />
+            </div>
+            <div>
+              <label class="block font-bold text-stone-600 mb-1">Pengeluaran Kas (Rp)</label>
+              <input type="number" id="sr-keluar" oninput="calcCash()" placeholder="0" class="w-full bg-stone-50 border rounded-xl p-2.5 font-bold" />
+            </div>
+          </div>
+          <div class="grid grid-cols-2 gap-2">
+            <div>
+              <label class="block font-bold text-stone-600 mb-1">Penjualan Tunai (Rp)</label>
+              <input type="number" id="sr-tunai" oninput="calcCash()" placeholder="0" class="w-full bg-stone-50 border rounded-xl p-2.5 font-bold text-emerald-700" />
+            </div>
+            <div>
+              <label class="block font-bold text-stone-600 mb-1">QRIS / EDC (Rp)</label>
+              <input type="number" id="sr-nontunai" placeholder="0" class="w-full bg-stone-50 border rounded-xl p-2.5 font-medium" />
+            </div>
+          </div>
+          <div class="p-3 bg-stone-50 rounded-xl border border-stone-200 space-y-1.5">
+            <div class="flex justify-between font-medium">
+              <span>Seharusnya di laci:</span>
+              <span id="sr-seharusnya" class="font-bold">Rp 0</span>
+            </div>
+            <div>
+              <label class="block font-bold text-stone-800 mb-1">Fisik Dihitung di Laci (Rp)</label>
+              <input type="number" id="sr-fisik" oninput="calcCash()" placeholder="Hitung uang riil..." class="w-full bg-white border-2 border-amber-600 rounded-xl p-2 text-sm font-black" />
+            </div>
+            <div class="flex justify-between font-black pt-1 border-t text-xs">
+              <span>Status Selisih:</span>
+              <span id="sr-status" class="text-stone-400">Belum dihitung</span>
+            </div>
+          </div>
+          <button type="submit" class="w-full bg-amber-800 hover:bg-amber-900 text-white font-bold py-3 rounded-xl shadow transition">Simpan Laporan Kas</button>
+        </form>
+      </div>
+    </section>
+
+    <!-- 5. PANEL SUPER ADMIN -->
+    <section id="pane-admin" class="hidden space-y-4">
+      <div class="bg-amber-900 text-amber-50 p-4 rounded-2xl shadow-lg border border-amber-800">
+        <h3 class="text-sm font-black flex items-center gap-2">
+          <i data-lucide="shield-check" class="w-5 h-5 text-amber-400"></i>
+          PANEL KHUSUS SUPER ADMIN (RAJA UTAMA)
+        </h3>
+        <p class="text-xs text-amber-200 mt-1">Hanya Anda yang dapat melihat tab ini untuk mengatur PIN semua staf secara langsung.</p>
+      </div>
+
+      <div class="bg-white rounded-2xl border border-stone-200 overflow-hidden shadow-sm">
+        <table class="w-full text-left text-xs">
+          <thead class="bg-stone-50 border-b border-stone-200 text-stone-400 uppercase font-bold text-[10px]">
+            <tr>
+              <th class="py-3 px-3">Username</th>
+              <th class="py-3 px-2">Nama & Role</th>
+              <th class="py-3 px-2">PIN Aktif</th>
+              <th class="py-3 px-3 text-right">Aksi</th>
+            </tr>
+          </thead>
+          <tbody id="admin-pin-table" class="divide-y divide-stone-100"></tbody>
+        </table>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- MODAL EDIT STOK -->
+  <div id="modal-stok" class="fixed inset-0 z-50 bg-stone-900/60 backdrop-blur-sm hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl p-5 max-w-sm w-full shadow-2xl border border-stone-200 space-y-3">
+      <h4 id="mdl-stok-nama" class="font-bold text-sm text-stone-900">Nama Barang</h4>
+      <input type="hidden" id="mdl-stok-row" />
+      <input type="hidden" id="mdl-stok-v" />
+      <div class="grid grid-cols-2 gap-2 text-xs">
+        <div>
+          <label class="block font-bold text-stone-600 mb-1">Gudang</label>
+          <input type="number" id="mdl-stok-gudang" class="w-full bg-stone-50 border rounded-xl p-2 font-bold" />
+        </div>
+        <div>
+          <label class="block font-bold text-stone-600 mb-1">Tersedia Pagi</label>
+          <input type="number" id="mdl-stok-pagi" class="w-full bg-stone-50 border rounded-xl p-2 font-bold" />
+        </div>
+        <div>
+          <label class="block font-bold text-stone-600 mb-1">Refill Pagi</label>
+          <input type="number" id="mdl-stok-refill-pagi" class="w-full bg-stone-50 border rounded-xl p-2 font-bold" />
+        </div>
+        <div>
+          <label class="block font-bold text-stone-600 mb-1">Refill Sore</label>
+          <input type="number" id="mdl-stok-refill-sore" class="w-full bg-stone-50 border rounded-xl p-2 font-bold" />
+        </div>
+        <div class="col-span-2">
+          <label class="block font-bold text-amber-900 mb-1">Sisa Sore (Closing)</label>
+          <input type="number" id="mdl-stok-sore" class="w-full bg-amber-50 border-2 border-amber-600 rounded-xl p-2 font-black text-amber-900" />
+        </div>
+      </div>
+      <div class="flex gap-2 pt-2">
+        <button onclick="closeModalStok()" class="flex-1 py-2.5 rounded-xl border border-stone-200 font-bold text-xs text-stone-600">Batal</button>
+        <button onclick="saveModalStok()" class="flex-1 py-2.5 rounded-xl bg-stone-900 text-white font-bold text-xs">Simpan</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let APP = {
+      user: JSON.parse(localStorage.getItem('hc_user') || 'null'),
+      pin: localStorage.getItem('hc_pin') || '',
+      data: null
+    };
+
+    window.addEventListener('DOMContentLoaded', () => {
+      lucide.createIcons();
+      setInterval(() => {
+        document.getElementById('live-clock').innerText = new Date().toLocaleTimeString('id-ID', { hour12: false });
+      }, 1000);
+
+      if (APP.user && APP.pin) {
+        document.getElementById('login-screen').classList.add('hidden');
+        setupUserUI();
+        fetchSync();
+        setInterval(() => fetchSync(false), 25000);
+      }
+    });
+
+    function showToast(msg, isErr = false) {
+      const el = document.getElementById('toast');
+      document.getElementById('toast-msg').innerText = msg;
+      el.className = el.className.replace(/border-[a-z0-9-]+/g, isErr ? 'border-rose-500' : 'border-stone-700');
+      document.getElementById('toast-icon').className = isErr ? 'w-4 h-4 text-rose-400' : 'w-4 h-4 text-amber-400';
+      el.classList.remove('translate-y-[-150%]', 'opacity-0');
+      setTimeout(() => el.classList.add('translate-y-[-150%]', 'opacity-0'), 3000);
+    }
+
+    async function apiCall(action, payload = {}) {
+      try {
+        const bodyData = {
+          secret: SHEETS_SECRET,
+          action: action,
+          username: APP.user ? APP.user.username : (payload.username || ''),
+          pin: APP.pin || (payload.pin || ''),
+          payload: payload
+        };
+
+        const res = await fetch(SCRIPT_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+          body: JSON.stringify(bodyData)
+        });
+
+        const json = await res.json();
+        if (json.error) {
+          if (json.error === 'invalid_login') throw new Error('Username atau PIN salah!');
+          if (json.error === 'locked') throw new Error('Akun terkunci karena 5x salah PIN.');
+          if (json.error === 'unauthorized') throw new Error('SHEETS_SECRET tidak cocok!');
+          throw new Error(json.error);
+        }
+        return json;
+      } catch (err) {
+        showToast(err.message, true);
+        throw err;
+      }
+    }
+
+    async function handleLogin() {
+      const u = document.getElementById('login-user').value.trim().toLowerCase();
+      const p = document.getElementById('login-pin').value.trim();
+      if (!u || !p) return showToast('Isi username dan PIN!', true);
+
+      const btn = document.getElementById('btn-login');
+      btn.disabled = true; btn.innerText = 'Memverifikasi...';
+
+      try {
+        const res = await apiCall('login', { username: u, pin: p });
+        APP.user = res.user;
+        APP.pin = p;
+        APP.data = res;
+        localStorage.setItem('hc_user', JSON.stringify(res.user));
+        localStorage.setItem('hc_pin', p);
+
+        document.getElementById('login-screen').classList.add('hidden');
+        setupUserUI();
+        renderAll();
+        showToast('Login berhasil sebagai ' + res.user.nama);
+      } catch (e) {
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = '<span>Masuk Stasiun</span> <i data-lucide="arrow-right" class="w-4 h-4"></i>';
+        lucide.createIcons();
+      }
+    }
+
+    function handleLogout() {
+      if (!confirm('Keluar dari stasiun?')) return;
+      localStorage.clear();
+      location.reload();
+    }
+
+    function setupUserUI() {
+      if (!APP.user) return;
+      document.getElementById('hdr-user-info').innerText = `${APP.user.nama} (${APP.user.divisi})`;
+      document.getElementById('badge-role').innerText = APP.user.role;
+      document.getElementById('kpi-my-div').innerText = APP.user.divisi;
+
+      const isSuperAdmin = APP.user.level >= 6 || APP.user.role === 'RAJA_UTAMA';
+      if (isSuperAdmin) {
+        document.getElementById('tab-btn-admin').classList.remove('hidden');
+        document.getElementById('kpi-my-scope').innerText = 'SUPER ADMIN (Akses Penuh)';
+      } else {
+        document.getElementById('tab-btn-admin').classList.add('hidden');
+        document.getElementById('kpi-my-scope').innerText = 'Staf Divisi';
+      }
+    }
+
+    async function fetchSync(notify = false) {
+      try {
+        const res = await apiCall('getAll');
+        APP.data = res;
+        renderAll();
+        if (notify) showToast('Data Sheet berhasil disinkronkan!');
+      } catch (e) {}
+    }
+
+    function switchTab(id) {
+      document.querySelectorAll('main > section').forEach(s => s.classList.add('hidden'));
+      document.getElementById('pane-' + id).classList.remove('hidden');
+      document.querySelectorAll('.tab-btn').forEach(b => {
+        const match = b.getAttribute('data-tab') === id;
+        b.className = match
+          ? 'tab-btn py-3 px-3.5 border-b-2 border-amber-500 text-amber-400 flex items-center gap-1.5 whitespace-nowrap'
+          : 'tab-btn py-3 px-3.5 border-b-2 border-transparent text-stone-400 hover:text-stone-200 flex items-center gap-1.5 whitespace-nowrap';
+      });
+      lucide.createIcons();
+    }
+
+    function renderAll() {
+      if (!APP.data || !APP.data.sheets) return;
+      renderDashboard();
+      renderChecklist();
+      renderStok();
+      renderAdminPin();
+      lucide.createIcons();
+    }
+
+    function renderDashboard() {
+      const ck = (APP.data.sheets.CHECKLIST && APP.data.sheets.CHECKLIST.rows) || [];
+      const done = ck.filter(r => r.status === 'Selesai').length;
+      const pct = ck.length ? Math.round((done / ck.length) * 100) : 0;
+      document.getElementById('kpi-check-pct').innerText = pct + '%';
+      document.getElementById('kpi-check-sub').innerText = `${done} dari ${ck.length} selesai`;
+
+      const st = (APP.data.sheets.STOK && APP.data.sheets.STOK.rows) || [];
+      const restock = st.filter(r => r.status === 'RESTOCK');
+      document.getElementById('kpi-restock-count').innerText = restock.length;
+
+      const restockEl = document.getElementById('dashboard-restock-list');
+      if (restock.length === 0) {
+        restockEl.innerHTML = '<div class="py-3 text-center text-stone-400">Semua bahan aman atau belum dihitung.</div>';
+      } else {
+        restockEl.innerHTML = restock.map(item => `
+          <div class="py-2 flex justify-between items-center">
+            <div>
+              <span class="font-bold text-stone-800">${item.nama_barang}</span>
+              <span class="text-[10px] text-stone-400 block">${item.divisi}</span>
+            </div>
+            <div class="text-right">
+              <span class="font-black text-rose-600">${item.total_makro || 0} ${item.satuan || ''}</span>
+              <span class="text-[10px] text-stone-400 block">Min: ${item.min_stok || 0}</span>
+            </div>
+          </div>
+        `).join('');
+      }
+    }
+
+    function renderChecklist() {
+      const el = document.getElementById('checklist-list');
+      const rows = (APP.data.sheets.CHECKLIST && APP.data.sheets.CHECKLIST.rows) || [];
+      const filterDiv = document.getElementById('filter-check-div').value;
+
+      let filtered = rows;
+      if (filterDiv !== 'SEMUA') filtered = filtered.filter(r => r.divisi === filterDiv);
+
+      el.innerHTML = filtered.map(r => {
+        const isDone = r.status === 'Selesai';
+        return `
+          <div class="bg-white p-3 rounded-2xl border border-stone-200 flex items-center justify-between gap-3 ${isDone ? 'opacity-60 bg-stone-50' : ''}">
+            <div class="flex items-center gap-3">
+              <button onclick="toggleChecklist(${r._row}, '${r._v}', '${isDone ? 'Belum' : 'Selesai'}')" class="w-6 h-6 rounded-lg flex items-center justify-center border transition ${isDone ? 'bg-emerald-600 border-emerald-600 text-white' : 'border-stone-300'}">
+                ${isDone ? '<i data-lucide="check" class="w-4 h-4"></i>' : ''}
+              </button>
+              <div>
+                <div class="text-xs font-bold text-stone-900 ${isDone ? 'line-through' : ''}">${r.tugas}</div>
+                <div class="text-[10px] text-stone-400">${r.divisi} • Target: ${r.jam_target || '-'} ${isDone ? `• Selesai oleh: ${r.petugas} (${r.jam_selesai})` : ''}</div>
+              </div>
+            </div>
+          </div>
+        `;
+      }).join('');
+      lucide.createIcons();
+    }
+
+    async function toggleChecklist(row, v, status) {
+      const jam = new Date().toLocaleTimeString('id-ID', { hour12: false, hour: '2-digit', minute: '2-digit' });
+      await apiCall('save', {
+        sheet: 'CHECKLIST', row: row, v: v,
+        values: { status: status, petugas: status === 'Selesai' ? APP.user.username : '', jam_selesai: status === 'Selesai' ? jam : '' }
+      });
+      fetchSync();
+    }
+
+    function renderStok() {
+      const el = document.getElementById('stok-table-body');
+      const rows = (APP.data.sheets.STOK && APP.data.sheets.STOK.rows) || [];
+      const divFilter = document.getElementById('filter-stok-div').value;
+      const search = document.getElementById('search-stok').value.toLowerCase();
+
+      let list = rows;
+      if (divFilter !== 'SEMUA') list = list.filter(r => r.divisi === divFilter);
+      if (search) list = list.filter(r => (r.nama_barang || '').toLowerCase().includes(search));
+
+      el.innerHTML = list.map(r => `
+        <tr class="hover:bg-stone-50">
+          <td class="py-2.5 px-3 font-bold">${r.nama_barang}<span class="text-[9px] text-stone-400 block">${r.divisi}</span></td>
+          <td class="py-2.5 px-2 text-center font-bold">${r.stok_gudang || '-'}</td>
+          <td class="py-2.5 px-2 text-center">${r.tersedia_pagi || '-'}</td>
+          <td class="py-2.5 px-2 text-center font-bold text-amber-900">${r.sisa_sore || '-'}</td>
+          <td class="py-2.5 px-2 text-center">
+            <span class="px-2 py-0.5 rounded-full text-[9px] font-bold ${r.status === 'RESTOCK' ? 'bg-rose-100 text-rose-700' : 'bg-emerald-100 text-emerald-700'}">${r.status || 'AMAN'}</span>
+          </td>
+          <td class="py-2.5 px-3 text-right">
+            <button onclick="openModalStok(${JSON.stringify(r).replace(/"/g, '&quot;')})" class="text-[10px] font-bold bg-stone-100 hover:bg-stone-200 px-2.5 py-1 rounded-lg">Edit</button>
+          </td>
+        </tr>
+      `).join('');
+    }
+
+    function openModalStok(item) {
+      document.getElementById('mdl-stok-nama').innerText = item.nama_barang;
+      document.getElementById('mdl-stok-row').value = item._row;
+      document.getElementById('mdl-stok-v').value = item._v;
+      document.getElementById('mdl-stok-gudang').value = item.stok_gudang || '';
+      document.getElementById('mdl-stok-pagi').value = item.tersedia_pagi || '';
+      document.getElementById('mdl-stok-refill-pagi').value = item.refill_pagi || '';
+      document.getElementById('mdl-stok-refill-sore').value = item.refill_sore || '';
+      document.getElementById('mdl-stok-sore').value = item.sisa_sore || '';
+      document.getElementById('modal-stok').classList.remove('hidden');
+    }
+
+    function closeModalStok() { document.getElementById('modal-stok').classList.add('hidden'); }
+
+    async function saveModalStok() {
+      const row = document.getElementById('mdl-stok-row').value;
+      const v = document.getElementById('mdl-stok-v').value;
+      await apiCall('save', {
+        sheet: 'STOK', row: row, v: v,
+        values: {
+          stok_gudang: document.getElementById('mdl-stok-gudang').value,
+          tersedia_pagi: document.getElementById('mdl-stok-pagi').value,
+          refill_pagi: document.getElementById('mdl-stok-refill-pagi').value,
+          refill_sore: document.getElementById('mdl-stok-refill-sore').value,
+          sisa_sore: document.getElementById('mdl-stok-sore').value
+        }
+      });
+      closeModalStok();
+      showToast('Stok berhasil disimpan ke Google Sheet!');
+      fetchSync();
+    }
+
+    function calcCash() {
+      const m = Number(document.getElementById('sr-kas-awal').value) || 0;
+      const k = Number(document.getElementById('sr-keluar').value) || 0;
+      const t = Number(document.getElementById('sr-tunai').value) || 0;
+      const f = Number(document.getElementById('sr-fisik').value) || 0;
+      const seharusnya = m + t - k;
+      const selisih = f - seharusnya;
+      document.getElementById('sr-seharusnya').innerText = 'Rp ' + seharusnya.toLocaleString('id-ID');
+
+      const st = document.getElementById('sr-status');
+      if (f === 0 && seharusnya !== 0) { st.innerText = 'Belum dihitung'; st.className = 'text-stone-400'; }
+      else if (selisih === 0) { st.innerText = 'COCOK'; st.className = 'text-emerald-600 font-bold'; }
+      else if (selisih > 0) { st.innerText = `LEBIH (+Rp ${selisih.toLocaleString('id-ID')})`; st.className = 'text-amber-600 font-bold'; }
+      else { st.innerText = `KURANG (-Rp ${Math.abs(selisih).toLocaleString('id-ID')})`; st.className = 'text-rose-600 font-bold'; }
+    }
+
+    async function handleSaveSerah(e) {
+      e.preventDefault();
+      await apiCall('save', {
+        sheet: 'SERAH_TERIMA',
+        values: {
+          tipe: document.getElementById('sr-tipe').value,
+          tanggal: new Date().toISOString().slice(0, 10),
+          kas_awal: document.getElementById('sr-kas-awal').value,
+          pengeluaran_tunai: document.getElementById('sr-keluar').value,
+          penjualan_tunai: document.getElementById('sr-tunai').value,
+          penjualan_nontunai: document.getElementById('sr-nontunai').value,
+          uang_fisik: document.getElementById('sr-fisik').value,
+          petugas_serah: APP.user.username
+        }
+      });
+      showToast('Serah terima tersimpan!');
+      fetchSync();
+    }
+
+    function renderAdminPin() {
+      if (!APP.data.sheets.PIN_RAJA) return;
+      const el = document.getElementById('admin-pin-table');
+      const rows = APP.data.sheets.PIN_RAJA.rows || [];
+      el.innerHTML = rows.map(r => `
+        <tr class="hover:bg-stone-50">
+          <td class="py-2.5 px-3 font-bold">${r.username}</td>
+          <td class="py-2.5 px-2">${r.nama_lengkap || '-'} <span class="text-[9px] text-stone-400 block">${r.role || ''}</span></td>
+          <td class="py-2.5 px-2 font-mono font-bold text-amber-900">${r.pin || 'Belum ada'}</td>
+          <td class="py-2.5 px-3 text-right">
+            <button onclick="ubahPinStaf('${r.username}', ${r._row}, '${r._v}')" class="text-[10px] font-bold bg-amber-100 hover:bg-amber-200 text-amber-900 px-2.5 py-1 rounded-lg">Ganti PIN</button>
+          </td>
+        </tr>
+      `).join('');
+    }
+
+    async function ubahPinStaf(uname, row, v) {
+      const pinBaru = prompt(`Ketik PIN baru (4–8 digit angka) untuk staf "${uname}":`);
+      if (!pinBaru) return;
+      if (!/^\d{4,8}$/.test(pinBaru)) return alert('PIN harus 4 sampai 8 digit angka!');
+
+      await apiCall('save', {
+        sheet: 'PIN_RAJA',
+        row: row,
+        v: v,
+        values: { pin: pinBaru }
+      });
+      showToast(`PIN ${uname} berhasil diubah!`);
+      fetchSync();
+    }
+  </script>
+</body>
+</html>
